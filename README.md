@@ -9,6 +9,7 @@ An unofficial Python driver using `bleak` to stream IMU accelerometer and gyrosc
 - **Auto-Discovery:** Scans and connects to the controller automatically via its advertised BLE name.
 - **Live IMU Streaming:** Unpacks and parses the raw BLE byte stream into a clean Python Data Class containing 6-DoF integers (Accel X/Y/Z and Gyro X/Y/Z).
 - **Graceful State Management:** Handles the undocumented "wake-up" and "sleep" hex commands to preserve the device's battery when not in use.
+- **Knob helper:** The `TrikiKnob` class that allows easy use of the device as a knob. Please look into `knobExample.py` for details.
 
 ## Prerequisites
 - Python 3.7 or higher
