@@ -204,3 +204,67 @@ class TrikiDevice:
                     loop.create_task(self.stopTriki())
             except RuntimeError:
                 pass # Event loop already closed, cannot safely disconnect over BLE
+            
+# A class to easily use the device as knob            
+class TrikiKnob:
+    def __init__(self, statusMin = -100000, statusMax = 100000, outputMin = 0, outputMax = 360, tolerance = 100):
+        """
+        Initalizes the object.
+        :param statusMin: Minimal internal knob status value
+        :param statusMax: Maximum interval knob status value
+        :param outputMin: Minimal output value
+        :param outputMax: Maximum output value
+        :param tolerance: Minimum change of status to assume rotation happened
+        """
+        self.statusMin = statusMin
+        self.statusMax = statusMax
+        self.status = statusMin
+        self.outputMin = outputMin
+        self.outputMax = outputMax
+        self.value = statusMin
+        self.lastIMUdata = 0
+        self.tolerance = tolerance
+        
+    def resetStatus(self):
+        """
+        Reset position of the knob.
+        """
+        self.status = self.statusMin
+        
+    def updateStatus(self, IMUData: TrikiData) -> float:
+        """
+        Update position of the knob.
+        Returns position of the knob.
+        :param IMUdata: IMU data of the device.
+        """
+        delta = abs(self.lastIMUdata-IMUData.az)
+        if delta<self.tolerance:
+            return self.value
+        
+        self.lastIMUdata = IMUData.az
+        
+        if self.status == self.statusMax and IMUData.az > 0:
+            self.status = self.statusMin
+        if self.status == self.statusMin and IMUData.az < 0:
+            self.status = self.statusMax
+        
+        self.status += IMUData.az
+        
+        if self.status > self.statusMax:
+            self.status = self.statusMax
+        if self.status < self.statusMin:
+            self.status = self.statusMin
+            
+        clampedValue = max(self.statusMin, min(self.statusMax, self.status))
+    
+        normalizedValue = (clampedValue - self.statusMin) / (self.statusMax - self.statusMin)
+    
+        self.value = normalizedValue * (self.outputMax - self.outputMin) + self.outputMin
+                
+        return self.value
+        
+    def getLastValue(self) -> float:
+        """
+        Read last position of the knob.
+        """
+        return self.value
