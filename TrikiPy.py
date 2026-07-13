@@ -30,6 +30,7 @@ class TrikiDevice:
         self._FirmwareVersion = None
         self._RXUUID = None
         self._TXUUID = None
+        self._LEDUUID = None
         self._Name = None
         
         # Hardcoded universal UUID for Battery Level (Battery Service)
@@ -87,6 +88,10 @@ class TrikiDevice:
                     # Nordic UART -> TX
                     elif char.uuid.startswith("6e400003"):
                         self._TXUUID = char.uuid
+
+                    # Custom LED control characteristic
+                    elif char.uuid.startswith("6e400004"):
+                        self._LEDUUID = char.uuid
                         
             return True
             
@@ -190,6 +195,22 @@ class TrikiDevice:
             return int(val[0])
         except Exception:
             return -1
+        
+    async def setLED(self, enabled: bool) -> bool:
+        if not self._client or not self._client.is_connected:
+            return False
+        if not self._LEDUUID:
+            return False
+
+        try:
+            await self._client.write_gatt_char(
+                self._LEDUUID,
+                b"\x01" if enabled else b"\x00",
+                response=True
+            )
+            return True
+        except Exception:
+            return False
 
     def __del__(self):
         """
