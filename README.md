@@ -8,6 +8,8 @@ An unofficial Python driver using `bleak` to stream IMU accelerometer and gyrosc
 - **Asynchronous & Fast:** Built on top of `bleak` for non-blocking native OS Bluetooth support.
 - **Auto-Discovery:** Scans and connects to the controller automatically via its advertised BLE name.
 - **Live IMU Streaming:** Unpacks and parses the raw BLE byte stream into a clean Python Data Class containing 6-DoF integers (Accel X/Y/Z and Gyro X/Y/Z).
+- **LED Control:** Allows the controller LED to be turned on or off with `setLED(True)` and `setLED(False)`.
+- **LED State Getter:** `getLEDstatus()` returns the locally tracked LED state.
 - **Graceful State Management:** Handles the undocumented "wake-up" and "sleep" hex commands to preserve the device's battery when not in use.
 - **Knob helper:** The `TrikiKnob` class that allows easy use of the device as a knob. Please look into `knobExample.py` for details.
 
@@ -18,7 +20,6 @@ An unofficial Python driver using `bleak` to stream IMU accelerometer and gyrosc
 Install the required BLE library:
 ```bash
 pip install bleak
-
 ```
 
 ## Quick Start
@@ -28,7 +29,6 @@ pip install bleak
 
 ```bash
 python RunDemo.py
-
 ```
 
 ### Example Usage (`RunDemo.py`)
@@ -54,17 +54,43 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
 ```
+
+## LED Control
+
+The controller LED can be controlled after a successful `connectTriki()` call:
+
+```python
+await triki.setLED(True)   # Turn LED on
+await triki.setLED(False)  # Turn LED off
+```
+
+The currently tracked LED state can be retrieved with:
+
+```python
+led_is_active = triki.getLEDstatus()
+```
+
+`getLEDstatus()` returns the state most recently requested through `setLED()`. It does not perform a live read from the controller.
 
 ## Protocol Documentation (Under the Hood)
 
 For developers looking to port this to other languages (like C++, JS, or Rust), here is the reverse-engineered GATT protocol the Triki device uses to communicate.
 
-The device utilizes the **Nordic UART Service (NUS)** structure:
+The device utilizes the **Nordic UART Service (NUS)** structure with an additional custom LED-control characteristic:
 
 * **RX UUID (Write):** `6e400002-b5a3-f393-e0a9-e50e24dcca9e`
 * **TX UUID (Notify):** `6e400003-b5a3-f393-e0a9-e50e24dcca9e`
+* **LED UUID (Write):** `6e400004-b5a3-f393-e0a9-e50e24dcca9e`
+
+### LED Commands
+
+The LED-control characteristic accepts a single-byte value:
+
+* **LED On:** `0x01`
+* **LED Off:** `0x00`
+
+Unlike the IMU wake and sleep commands, these values are written directly to the LED characteristic (`6e400004-...`), not to the Nordic UART RX characteristic.
 
 ### Wake / Sleep Commands
 

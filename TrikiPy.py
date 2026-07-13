@@ -41,6 +41,7 @@ class TrikiDevice:
         self._data_buffer = bytearray()
         self._data_queue = asyncio.Queue()
         self._is_streaming = False
+        self._is_led_active = False
 
     async def connectTriki(self, timeout: float = 10.0) -> bool:
         """Scans, connects, and populates GATT data. Returns True on success."""
@@ -151,12 +152,37 @@ class TrikiDevice:
             
         # This will safely block until a new packet is parsed and available
         return await self._data_queue.get()
+    
+    async def setLED(self, enabled: bool) -> bool:
+        """Allows to turn the device's LED on or off."""
+        if not self._client or not self._client.is_connected:
+            return False
+        if not self._LEDUUID:
+            return False
+
+        try:
+            await self._client.write_gatt_char(
+                self._LEDUUID,
+                b"\x01" if enabled else b"\x00",
+                response=True
+            )
+            self._is_led_active = enabled
+            return True
+        except Exception:
+            return False
 
     async def stopTriki(self) -> bool:
         """Sends sleep command, stops notifications, and disconnects."""
         if not self._client or not self._client.is_connected:
             return False
-            
+        
+        if self._is_led_active:
+            try:
+                await self.setLED(False)
+                self._is_led_active = False
+            except:
+                pass
+
         try:
             # Send sleep command
             if self._RXUUID:
@@ -181,6 +207,9 @@ class TrikiDevice:
 
     def getName(self) -> str:
         return self._Name
+    
+    def getLEDstatus(self) -> bool:
+        return self._is_led_active
 
     def getFirmwareVersion(self) -> str:
         return self._FirmwareVersion
@@ -195,22 +224,6 @@ class TrikiDevice:
             return int(val[0])
         except Exception:
             return -1
-        
-    async def setLED(self, enabled: bool) -> bool:
-        if not self._client or not self._client.is_connected:
-            return False
-        if not self._LEDUUID:
-            return False
-
-        try:
-            await self._client.write_gatt_char(
-                self._LEDUUID,
-                b"\x01" if enabled else b"\x00",
-                response=True
-            )
-            return True
-        except Exception:
-            return False
 
     def __del__(self):
         """

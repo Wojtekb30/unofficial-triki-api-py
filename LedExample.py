@@ -22,25 +22,34 @@ async def main():
     if await triki.startTriki():
         
         # Turn LED on and off
+        print("Flashing LED...")
         await triki.setLED(True)
-        time.sleep(5)
-        await triki.setLED(False)
-        time.sleep(2)
-        await triki.setLED(True)
+        print("LED status: "+str(triki.getLEDstatus()))
         time.sleep(2)
         await triki.setLED(False)
-        time.sleep(5)
+        print("LED status: "+str(triki.getLEDstatus()))
+        time.sleep(2)
+        await triki.setLED(True)
+        print("LED status: "+str(triki.getLEDstatus()))
+        time.sleep(1)
+        await triki.setLED(False)
+        print("LED status: "+str(triki.getLEDstatus()))
+        time.sleep(1)
         
         print("Continuing...")
         print("\n--- Live Data Started ---")
         
-        # 4. Fetch the next 20 samples asynchronously
-        for _ in range(20):
+        await triki.setLED(True)
+        
+        # 4. Fetch the next 200 samples asynchronously
+        for _ in range(200):
             data = await triki.getTrikiData()
             print(f"Accel(X,Y,Z): {data.ax:6}, {data.ay:6}, {data.az:6}  |  Gyro(X,Y,Z): {data.gx:6}, {data.gy:6}, {data.gz:6}")
             
         # 5. Stop and disconnect
         print("\nStopping...")
+        
+        #await triki.setLED(False) # stopTriki() turns the LED off
         await triki.stopTriki()
         print("Disconnected gracefully.")
 
